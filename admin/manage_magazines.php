@@ -1,0 +1,209 @@
+<?php
+require_once '../include/db_connect.php';
+session_start();
+
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: index.php");
+    exit();
+}
+
+$stmt = $pdo->query("SELECT * FROM magazine ORDER BY publish_date DESC");
+$magazines = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Define base path for images
+$basePath = '../uploads/'; // Adjust this based on your directory structure
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Manage Magazines</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+    <style>
+        .content-snippet {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .magazine-img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="d-flex flex-nowrap">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom:35px; padding-left:10px;">
+                <span class="material-icons logo-icon" style="font-size: 36px;">anchor</span>
+                <h2 style="margin: 0; font-weight: 600; font-size: 24px;">FishersNet</h2>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.php"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="manage_users.php"><i class="fa fa-users"></i> Manage Users</a></li>
+                <li><a href="manage_fishers.php"><i class="fa fa-fish"></i> Manage Fishers</a></li>
+                <li><a href="manage_magazines.php"><i class="fa fa-book"></i> Manage Magazines</a></li>
+                <li><a href="manage_feedback.php"><i class="fa fa-comments"></i> Feedback</a></li>
+                <li><a href="logout.php" class="text-danger"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Manage Magazines</h2>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMagazineModal">
+                    <i class="fas fa-plus me-1"></i> Add New Magazine
+                </button>
+            </div>
+
+            <table class="table table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Image</th>
+                        <th>Title</th>
+                        <th>Content</th>
+                        <th>Publish Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($magazines as $magazine): ?>
+                        <tr>
+                            <td>
+                                <?php
+                                $imagePath = $basePath . ($magazine['image_url'] ?? '');
+                                if ($magazine['image_url'] && file_exists($imagePath)):
+                                    ?>
+                                    <img src="<?= htmlspecialchars($imagePath) ?>" class="magazine-img" alt="Magazine Cover">
+                                <?php else: ?>
+                                    <div class="img-placeholder">
+                                        <i class="fas fa-book text-muted"></i>
+                                    </div>
+                                <?php endif; ?>
+                            </td>
+                            <td><?= htmlspecialchars($magazine['title']) ?></td>
+                            <td class="content-snippet"><?= htmlspecialchars(substr($magazine['content'], 0, 100)) ?>...
+                            </td>
+                            <td><?= date('M d, Y', strtotime($magazine['publish_date'])) ?></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+                                    data-bs-target="#editModal<?= $magazine['magazine_id'] ?>">
+                                    <i class="fas fa-edit me-1"></i> Edit
+                                </button>
+                                <a href="delete_magazine.php?id=<?= $magazine['magazine_id'] ?>"
+                                    onclick="return confirm('Are you sure?')" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash-alt me-1"></i> Delete
+                                </a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+
+            <!-- Add Magazine Modal -->
+            <div class="modal fade" id="addMagazineModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <form action="add_magazine.php" method="POST" enctype="multipart/form-data" class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add New Magazine</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Title</label>
+                                <input type="text" name="title" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Content</label>
+                                <textarea name="content" class="form-control" rows="5" required></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Publish Date</label>
+                                <input type="date" name="publish_date" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">PDF File</label>
+                                <input type="file" name="file" class="form-control" accept=".pdf" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Cover Image</label>
+                                <input type="file" name="image" class="form-control" accept="image/*">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Magazine</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Edit Modals -->
+            <?php foreach ($magazines as $magazine): ?>
+                <div class="modal fade" id="editModal<?= $magazine['magazine_id'] ?>" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <form action="update_magazine.php" method="POST" enctype="multipart/form-data"
+                            class="modal-content">
+                            <input type="hidden" name="magazine_id" value="<?= $magazine['magazine_id'] ?>">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Update Magazine</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Title</label>
+                                    <input type="text" name="title" class="form-control"
+                                        value="<?= htmlspecialchars($magazine['title']) ?>" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Content</label>
+                                    <textarea name="content" class="form-control" rows="5"
+                                        required><?= htmlspecialchars($magazine['content']) ?></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Publish Date</label>
+                                    <input type="date" name="publish_date" class="form-control"
+                                        value="<?= $magazine['publish_date'] ?>" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Current PDF: <?= basename($magazine['file_url']) ?></label>
+                                    <input type="file" name="file" class="form-control" accept=".pdf">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Current Image:</label>
+                                    <?php if ($magazine['image_url']): ?>
+                                        <img src="../<?= htmlspecialchars($magazine['image_url']) ?>" class="img-thumbnail mb-2"
+                                            style="max-height: 100px;">
+                                    <?php endif; ?>
+                                    <input type="file" name="image" class="form-control" accept="image/*">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
