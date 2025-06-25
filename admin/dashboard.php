@@ -77,6 +77,7 @@ $monthlyData['counts'] = array_values($allMonths);
                 <li><a href="manage_users.php"><span class="icon"><i class="fa fa-users"></i></span><span class="label">Manage Users</span></a></li>
                 <li><a href="manage_fishers.php"><i class="fa fa-fish"></i> Manage Fishers</a></li>
                 <li><a href="manage_magazines.php"><i class="fa fa-book"></i> Manage Magazines</a></li>
+                <li><a href="manage_rescues.php"><i class="fa fa-life-ring"></i> Manage Rescues</a></li>
                 <li><a href="manage_feedback.php"><i class="fa fa-comments"></i> Feedback</a></li>
                 <li><a href="logout.php" class="text-danger"><span class="icon"><i class="fa fa-sign-out-alt"></i></span><span class="label">Logout</span></a></li>
             </ul>

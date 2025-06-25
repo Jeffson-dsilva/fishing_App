@@ -90,8 +90,9 @@ $fisherList = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <li><a href="dashboard.php"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
         <li><a href="manage_users.php"><i class="fa fa-users"></i> Manage Users</a></li>
         <li><a href="manage_fishers.php"><i class="fa fa-fish"></i> Manage Fishers</a></li>
-      <li><a href="manage_magazines.php"><i class="fa fa-book"></i> Manage Magazines</a></li>
-      <li><a href="manage_feedback.php"><i class="fa fa-comments"></i> Feedback</a></li>
+        <li><a href="manage_magazines.php"><i class="fa fa-book"></i> Manage Magazines</a></li>
+        <li><a href="manage_rescues.php"><i class="fa fa-life-ring"></i> Manage Rescues</a></li>
+        <li><a href="manage_feedback.php"><i class="fa fa-comments"></i> Feedback</a></li>
         <li><a href="logout.php" class="text-danger"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
       </ul>
     </div>
