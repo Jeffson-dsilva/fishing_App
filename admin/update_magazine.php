@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $file_url = $current['file_url'];
     $image_url = $current['image_url'];
     
-    $uploadDir = '../magazine/';
+$uploadDir = __DIR__ . '/../../uploads/magazine/';
     
     // Handle PDF file update if new file is uploaded
     if (!empty($_FILES['file']['name'])) {
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($file_url && file_exists('../' . $file_url)) {
                 unlink('../' . $file_url);
             }
-            $file_url = 'magazine/' . $pdfFileName;
+            $file_url = 'uploads/magazine/' . $pdfFileName;
         }
     }
     
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($image_url && file_exists('../' . $image_url)) {
                 unlink('../' . $image_url);
             }
-            $image_url = 'magazine/' . $imageFileName;
+            $image_url = 'uploads/magazine/' . $imageFileName;
         }
     }
     
