@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['response'])) {
     $feedback_id = $_POST['feedback_id'];
     $response = $_POST['response'];
     $status = $_POST['status'];
-    
+
     try {
         $stmt = $pdo->prepare("UPDATE feedback SET admin_response = ?, status = ? WHERE feedback_id = ?");
         $stmt->execute([$response, $status, $feedback_id]);
@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['response'])) {
   <link rel="stylesheet" href="assets/css/dashboard.css">
   <style>
     .feedback-card {
-      border-left: 4px solid #0d6efd;
+      border-left: 7px solid #0d6efd;
       margin-bottom: 15px;
     }
     .resolved {
@@ -88,61 +88,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['response'])) {
   </div>
 
   <!-- Main Content -->
-  <div class="main">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2>Manage Feedback</h2>
-      <div>
-        <a href="export_feedback.php" class="btn btn-outline-secondary me-2">
-          <i class="fas fa-download me-1"></i> Export
-        </a>
-        <div class="btn-group">
-          <a href="manage_feedback.php?filter=all" class="btn btn-outline-primary <?= $filter === 'all' ? 'active' : '' ?>">All</a>
-          <a href="manage_feedback.php?filter=pending" class="btn btn-outline-primary <?= $filter === 'pending' ? 'active' : '' ?>">Pending</a>
-          <a href="manage_feedback.php?filter=resolved" class="btn btn-outline-primary <?= $filter === 'resolved' ? 'active' : '' ?>">Resolved</a>
-        </div>
+  <div class="main p-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 p-4">
+    <h2>Manage Feedback</h2>
+    <div>
+      <div class="btn-group">
+        <a href="manage_feedback.php?filter=all" class="btn btn-outline-primary <?= $filter === 'all' ? 'active' : '' ?>">All</a>
+        <a href="manage_feedback.php?filter=pending" class="btn btn-outline-primary <?= $filter === 'pending' ? 'active' : '' ?>">Pending</a>
+        <a href="manage_feedback.php?filter=resolved" class="btn btn-outline-primary <?= $filter === 'resolved' ? 'active' : '' ?>">Resolved</a>
       </div>
     </div>
-    
-    <?php if (isset($_SESSION['success'])): ?>
-      <div class="alert alert-success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
-    <?php endif; ?>
-    
-    <?php if (isset($_SESSION['error'])): ?>
-      <div class="alert alert-danger"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
-    <?php endif; ?>
-    
-    <?php if (empty($feedbackList)): ?>
-      <div class="alert alert-info">No feedback found</div>
-    <?php else: ?>
+  </div>
+
+  <?php if (isset($_SESSION['success'])): ?>
+    <div class="alert alert-success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
+  <?php endif; ?>
+
+  <?php if (isset($_SESSION['error'])): ?>
+    <div class="alert alert-danger"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
+  <?php endif; ?>
+
+  <?php if (empty($feedbackList)): ?>
+    <div class="alert alert-info">No feedback found</div>
+  <?php else: ?>
+
+    <div class="row">
       <?php foreach ($feedbackList as $feedback): ?>
-        <div class="card feedback-card <?= $feedback['status'] === 'Resolved' ? 'resolved' : '' ?>">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <h5 class="card-title">
-                <?= $feedback['user_name'] ? htmlspecialchars($feedback['user_name']) : 'Anonymous' ?>
-                <small class="text-muted"><?= date('M d, Y H:i', strtotime($feedback['submitted_at'])) ?></small>
-              </h5>
-              <span class="badge bg-<?= $feedback['status'] === 'Resolved' ? 'success' : 'warning' ?>">
-                <?= $feedback['status'] ?>
-              </span>
-            </div>
-            <p class="card-text"><?= nl2br(htmlspecialchars($feedback['message'])) ?></p>
-            
-            <?php if ($feedback['admin_response']): ?>
-              <div class="card response-card mt-3">
-                <div class="card-body">
-                  <h6 class="card-subtitle mb-2 text-muted">Admin Response</h6>
-                  <p class="card-text"><?= nl2br(htmlspecialchars($feedback['admin_response'])) ?></p>
-                </div>
+        <?php $status = $feedback['status'] ?? 'Pending'; ?>
+
+        <div class="col-md-6 col-lg-4 mb-4">
+          <div class="card feedback-card <?= $status === 'Resolved' ? 'resolved' : '' ?>">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <h5 class="card-title">
+                  <span class="text-primary" style="font-weight:bold;"><?= $feedback['user_name'] ? htmlspecialchars($feedback['user_name']) : 'Anonymous' ?></span>
+                  <small class="text-muted p-2 py=1" style="font-size:15px;position:absolute;top:10px;right:0;"><?= date('M d, Y H:i', strtotime($feedback['submitted_at'])) ?></small>
+                </h5>
               </div>
-            <?php endif; ?>
-            
-            <button class="btn btn-sm btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#responseModal<?= $feedback['feedback_id'] ?>">
-              <i class="fas fa-reply me-1"></i> Respond
-            </button>
+              <p class="card-text"><?= nl2br(htmlspecialchars($feedback['message'])) ?></p>
+
+              <?php if (!empty($feedback['admin_response'])): ?>
+                <div class="card response-card mt-3">
+                  <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">FishersNet</h6>
+                    <p class="card-text"><?= nl2br(htmlspecialchars($feedback['admin_response'])) ?></p>
+                  </div>
+                </div>
+              <?php endif; ?>
+            <div class="d-flex justify-content-between">
+              <button class="btn btn-sm btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#responseModal<?= $feedback['feedback_id'] ?>">
+                <i class="fas fa-reply me-1"></i> Respond
+              </button>
+              <span class="badge bg-<?= $status === 'Resolved' ? 'success' : 'warning' ?> p-2 mt-3">
+                  <?= htmlspecialchars($status) ?>
+              </span>
+              </div>
+            </div>
           </div>
         </div>
-        
+
         <!-- Response Modal -->
         <div class="modal fade" id="responseModal<?= $feedback['feedback_id'] ?>" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog">
@@ -164,8 +168,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['response'])) {
                 <div class="mb-3">
                   <label class="form-label">Status</label>
                   <select name="status" class="form-select">
-                    <option value="Pending" <?= $feedback['status'] === 'Pending' ? 'selected' : '' ?>>Pending</option>
-                    <option value="Resolved" <?= $feedback['status'] === 'Resolved' ? 'selected' : '' ?>>Resolved</option>
+                    <option value="Pending" <?= $status === 'Pending' ? 'selected' : '' ?>>Pending</option>
+                    <option value="Resolved" <?= $status === 'Resolved' ? 'selected' : '' ?>>Resolved</option>
                   </select>
                 </div>
               </div>
@@ -176,9 +180,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['response'])) {
             </form>
           </div>
         </div>
+
       <?php endforeach; ?>
-    <?php endif; ?>
-  </div>
+    </div>
+
+  <?php endif; ?>
+</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
