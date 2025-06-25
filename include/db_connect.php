@@ -3,7 +3,7 @@ $host = 'localhost';
 $dbname = 'fishing_app';
 $username = 'root'; 
 $password = ''; 
-$port = 3307;
+$port = 3306;
 
 try {
     $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4", $username, $password);
