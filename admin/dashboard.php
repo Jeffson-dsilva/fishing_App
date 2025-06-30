@@ -1,47 +1,56 @@
 <?php
-require_once '../include/db_connect.php'; // ✅ Corrected path to DB file
+require_once '../include/db_connect.php';
 session_start();
 
-// Ensure the admin is logged in
 if (!isset($_SESSION['admin_id'])) {
     header("Location: index.php");
     exit();
 }
 
-// Total users
-$result = $pdo->query("SELECT COUNT(*) AS total_users FROM user");
-$data = $result->fetch(PDO::FETCH_ASSOC);
-$totalUsers = $data['total_users'] ?? 0;
+// Total Counts
+$totalUsers = $pdo->query("SELECT COUNT(*) AS total FROM user")->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+$totalOrders = $pdo->query("SELECT COUNT(*) AS total FROM orders")->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+$totalFishers = $pdo->query("SELECT COUNT(*) AS total FROM fisher")->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+$pendingFishers = $pdo->query("SELECT COUNT(*) AS total FROM rescue WHERE status = 'Pending'")->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
 
-// Generate all months for the current year
+// Monthly Users
 $currentYear = date('Y');
 $allMonths = [];
 for ($i = 1; $i <= 12; $i++) {
     $monthKey = $currentYear . '-' . str_pad($i, 2, '0', STR_PAD_LEFT);
     $allMonths[$monthKey] = 0;
 }
-
-// Fetch user registration count grouped by month
-$monthsQuery = "
+$stmt = $pdo->prepare("
     SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, COUNT(*) AS count 
     FROM user 
-    WHERE YEAR(created_at) = $currentYear
-    GROUP BY month 
-    ORDER BY month ASC
-";
-$monthsResult = $pdo->query($monthsQuery);
-while ($row = $monthsResult->fetch(PDO::FETCH_ASSOC)) {
+    WHERE YEAR(created_at) = :currentYear 
+    GROUP BY month
+");
+$stmt->execute(['currentYear' => $currentYear]);
+while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $allMonths[$row['month']] = (int) $row['count'];
 }
+$userMonthlyData = [
+    'labels' => array_map(fn($key) => date("F", strtotime($key . '-01')), array_keys($allMonths)),
+    'counts' => array_values($allMonths)
+];
 
-// Convert YYYY-MM to Month Name
-$labels = [];
-foreach (array_keys($allMonths) as $key) {
-    $labels[] = date("F", strtotime($key . '-01'));
+// Monthly Rescues
+$rescueMonths = $allMonths;
+$rescueStmt = $pdo->prepare("
+    SELECT DATE_FORMAT(reported_at, '%Y-%m') AS month, COUNT(*) AS count 
+    FROM rescue 
+    WHERE YEAR(reported_at) = :currentYear 
+    GROUP BY month
+");
+$rescueStmt->execute(['currentYear' => $currentYear]);
+while ($row = $rescueStmt->fetch(PDO::FETCH_ASSOC)) {
+    $rescueMonths[$row['month']] = (int) $row['count'];
 }
-
-$monthlyData['labels'] = $labels;
-$monthlyData['counts'] = array_values($allMonths);
+$rescueMonthlyData = [
+    'labels' => array_map(fn($key) => date("F", strtotime($key . '-01')), array_keys($rescueMonths)),
+    'counts' => array_values($rescueMonths)
+];
 ?>
 
 <!DOCTYPE html>
@@ -52,107 +61,191 @@ $monthlyData['counts'] = array_values($allMonths);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!-- Stylesheets -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="assets/css/dashboard.css">
+
+    <style>
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+    </style>
 </head>
 
 <body>
-    <div class="d-flex flex-nowrap">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div style="display: flex; align-items: center; gap: 10px;margin-bottom:35px;padding-left:10px;">
-                <span class="material-icons logo-icon" style="font-size: 36px;">anchor</span>
-                <h2 style="margin: 0; font-weight: 600; font-size: 24px;">FishersNet</h2>
-            </div>
+    <div class="d-flex">
+        <?php include 'components/sidebar.php'; ?>
 
-            <ul class="sidebar-menu">
-                <li><a href="dashboard.php"><span class="icon"><i class="fa fa-tachometer-alt"></i></span><span
-                            class="label">Dashboard</span></a></li>
-                <li><a href="manage_users.php"><span class="icon"><i class="fa fa-users"></i></span><span class="label">Manage Users</span></a></li>
-                <li><a href="manage_fishers.php"><i class="fa fa-fish"></i> Manage Fishers</a></li>
-                <li><a href="manage_magazines.php"><i class="fa fa-book"></i> Manage Magazines</a></li>
-                <li><a href="manage_rescues.php"><i class="fa fa-life-ring"></i> Manage Rescues</a></li>
-                <li><a href="manage_feedback.php"><i class="fa fa-comments"></i> Feedback</a></li>
-                <li><a href="logout.php" class="text-danger"><span class="icon"><i class="fa fa-sign-out-alt"></i></span><span class="label">Logout</span></a></li>
-            </ul>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <h2 class="mb-4">Admin Dashboard</h2>
-            <div class="col-md-4">
-                <div class="card total-user-card text-white mb-4 bg-primary">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title mb-1">Total Users</h6>
-                            <h3 class="mb-0"><?= $totalUsers ?></h3>
-                        </div>
-                        <div><i class="bi bi-people-fill" style="font-size: 2rem;"></i></div>
+        <div class="main-content flex-grow-1">
+            <div class="container-fluid">
+                <div class="row mb-4">
+                    <div class="col">
+                        <h2 class="fw-bold text-dark text-center text-md-start">Admin Dashboard</h2>
                     </div>
                 </div>
-            </div>
 
-            <div class="row g-4">
-                <!-- Chart -->
-                <div class="col-lg-8 col-md-12">
-                    <div class="card shadow p-4 bg-white h-100">
-                        <h4 class="mb-3">User Registrations (<?= $currentYear ?>)</h4>
-                        <p><strong>Total Users:</strong> <?= $totalUsers ?></p>
-                        <div class="chart-container">
-                            <canvas id="monthlyUserChart"></canvas>
+                <div class="row g-4 mb-4">
+                    <div class="col-6 col-md-3">
+                        <div
+                            class="card d-flex flex-row align-items-center justify-content-between p-3 h-100 shadow-sm" style="border:2px solid #3674B5">
+                            <div>
+                                <h6 class="text-muted mb-1">Total Users</h6>
+                                <h3 class="mb-0" style="color:#3674B5"><?= $totalUsers ?></h3>
+                            </div>
+                            <div class="p-3">
+                                <i class="bi bi-people fs-3 text-primary"></i>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Calendar -->
-                <div class="col-lg-4 col-md-12">
-                    <div class="card shadow p-4 bg-white h-100">
-                        <h5 class="mb-3">Calendar</h5>
-                        <div id="calendar"></div>
+                    <div class="col-6 col-md-3">
+                        <div
+                            class="card d-flex flex-row align-items-center justify-content-between p-3 h-100 shadow-sm" style="border:2px solid #3674B5">
+                            <div>
+                                <h6 class="text-muted mb-1">Total Orders</h6>
+                                <h3 class="mb-0" style="color:#3674B5;"><?= $totalOrders ?></h3>
+                            </div>
+                            <div class="p-3">
+                                <i class="bi bi-bag-check fs-3 text-success"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-6 col-md-3">
+                        <div
+                            class="card d-flex flex-row align-items-center justify-content-between p-3 h-100 shadow-sm" style="border:2px solid #3674B5">
+                            <div>
+                                <h6 class="text-muted mb-1">Total Fishers</h6>
+                                <h3 class="mb-0" style="color:#3674B5"><?= $totalFishers ?></h3>
+                            </div>
+                            <div class="p-3">
+                                <i class="bi bi-person-badge fs-3 text-info"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-6 col-md-3">
+                        <div
+                            class="card d-flex flex-row align-items-center justify-content-between p-3 h-100 shadow-sm" style="border:2px solid #3674B5">
+                            <div>
+                                <h6 class="text-muted mb-1">Pending Rescues</h6>
+                                <h3 class="mb-0" style="color:#3674B5"><?= $pendingFishers ?></h3>
+                            </div>
+                            <div class="p-3">
+                                <i class="bi bi-exclamation-triangle fs-3 text-warning"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+
+                <div class="row g-4">
+                    <div class="col-lg-8">
+                        <div class="card shadow p-3">
+                            <h5 class="text-center mb-3">Monthly User Registrations (<?= $currentYear ?>)</h5>
+                            <div class="chart-container">
+                                <canvas id="userChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card shadow p-3">
+                            <h5 class="text-center mb-3">Total Orders Distribution</h5>
+                            <div class="chart-container">
+                                <canvas id="ordersChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card shadow p-3">
+                            <h5 class="text-center mb-3">Fishers Pending vs Total</h5>
+                            <div class="chart-container">
+                                <canvas id="fishersChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-8">
+                        <div class="card shadow p-3">
+                            <h5 class="text-center mb-3">Monthly Rescues Reported (<?= $currentYear ?>)</h5>
+                            <div class="chart-container">
+                                <canvas id="rescuesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-    <script src="assets/js/script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const ctx = document.getElementById('monthlyUserChart').getContext('2d');
-        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(0, 123, 255, 0.3)');
-        gradient.addColorStop(1, 'rgba(0, 123, 255, 0.8)');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: <?= json_encode($monthlyData['labels']) ?>,
-                datasets: [{
-                    label: 'Users Registered',
-                    data: <?= json_encode($monthlyData['counts']) ?>,
-                    backgroundColor: gradient,
-                    borderColor: 'rgba(0, 123, 255, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: { title: { display: true, text: 'Month' } },
-                    y: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1 },
-                        title: { display: true, text: 'Users' }
-                    }
+        document.addEventListener("DOMContentLoaded", function () {
+            // Users Chart
+            new Chart(document.getElementById('userChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: <?= json_encode($userMonthlyData['labels']) ?>,
+                    datasets: [{
+                        label: 'Users Registered',
+                        data: <?= json_encode($userMonthlyData['counts']) ?>,
+                        backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                        borderColor: 'rgba(13, 110, 253, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Orders Chart
+            new Chart(document.getElementById('ordersChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Pending', 'Cancelled'],
+                    datasets: [{
+                        data: [30, 10, 5],
+                        backgroundColor: ['#198754', '#ffc107', '#dc3545']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
+            });
+
+            // Fishers Chart
+            new Chart(document.getElementById('fishersChart').getContext('2d'), {
+                type: 'pie',
+                data: {
+                    labels: ['Pending Rescues', 'Total Fishers'],
+                    datasets: [{
+                        data: [<?= $pendingFishers ?>, <?= $totalFishers ?>],
+                        backgroundColor: ['#ffc107', '#0dcaf0']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Monthly Rescues Chart
+            // Monthly Rescues Chart (Horizontal Bar)
+            new Chart(document.getElementById('rescuesChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: <?= json_encode($rescueMonthlyData['labels']) ?>,
+                    datasets: [{
+                        label: 'Rescues Reported',
+                        data: <?= json_encode($rescueMonthlyData['counts']) ?>,
+                        backgroundColor: '#fd7e14'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y' // Makes it horizontal
                 }
-            }
+            });
+
         });
     </script>
 </body>
