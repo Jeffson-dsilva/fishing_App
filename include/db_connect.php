@@ -1,8 +1,8 @@
 <?php
 $host = 'localhost';
 $dbname = 'fishing_app';
-$username = 'root'; 
-$password = ''; 
+$username = 'root';
+$password = '';
 $port = 3306;
 
 try {
@@ -10,6 +10,7 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     header('Content-Type: application/json');
-    die(json_encode(['error' => 'Database connection failed: ' . $e->getMessage()]));
+    die(json_encode(["success" => false, "message" => "Database connection failed"]));
 }
 ?>
+

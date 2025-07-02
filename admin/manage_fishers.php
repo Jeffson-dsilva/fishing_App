@@ -112,7 +112,7 @@ $fisherList = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4">
           <h2 class="fw-bold mb-3 mb-md-0 text-center text-md-start">Manage Fishers</h2>
-          <button class="btn btn-dark">+ Add Fisher</button>
+          <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#addFisherModal">+ Add Fisher</button>
         </div>
 
         <div class="table-responsive">
@@ -190,7 +190,45 @@ $fisherList = $stmt->fetchAll(PDO::FETCH_ASSOC);
           </div>
         <?php endforeach; ?>
 
+        <!-- Add Fisher Modal -->
+        <div class="modal fade" id="addFisherModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <form action="add_fisher.php" method="POST" class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Add New Fisher</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label">Name</label>
+                  <input type="text" name="name" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Email</label>
+                  <input type="email" name="email" class="form-control">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Phone</label>
+                  <input type="text" name="phone" class="form-control">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Location</label>
+                  <input type="text" name="location" class="form-control">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Password</label>
+                  <input type="password" name="password" class="form-control" required>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-primary">Add Fisher</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
       </div>
+
     </div>
 
   </div>

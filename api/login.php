@@ -17,17 +17,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     try {
-        $stmt = $pdo->prepare("SELECT user_id, name, email, password FROM user WHERE email = :email");
+        // 1. Check in user table
+        $stmt = $pdo->prepare("SELECT user_id AS id, name, email, password FROM user WHERE email = :email");
         $stmt->execute([':email' => $email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($password, $user['password'])) {
-            // Remove password from response
             unset($user['password']);
+            $user['role'] = 'user';
             echo json_encode(['status' => 'success', 'message' => 'Login successful', 'user' => $user]);
-        } else {
-            echo json_encode(['status' => 'error', 'message' => 'Invalid email or password']);
+            exit;
         }
+
+        // 2. Check in fisher table
+        $stmt = $pdo->prepare("SELECT fisher_id AS id, name, email, password FROM fisher WHERE email = :email");
+        $stmt->execute([':email' => $email]);
+        $fisher = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($fisher && password_verify($password, $fisher['password'])) {
+            unset($fisher['password']);
+            $fisher['role'] = 'fisher';
+            echo json_encode(['status' => 'success', 'message' => 'Login successful', 'user' => $fisher]);
+            exit;
+        }
+
+        // 3. If not found in both tables
+        echo json_encode(['status' => 'error', 'message' => 'Invalid email or password']);
     } catch (PDOException $e) {
         echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
     }

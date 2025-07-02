@@ -10,7 +10,7 @@ try {
     $stmt = $pdo->query("SELECT magazine_id, title, content, publish_date, file_url, image_url FROM magazine ORDER BY publish_date DESC");
     $magazines = $stmt->fetchAll(PDO::FETCH_ASSOC);
     // Append base URL to image_url and file_url for full path
-    $baseUrl = 'http://192.168.0.181/fishing/uploads';
+    $baseUrl = 'http://192.168.89.28/fishing1/fishing_App1';
     foreach ($magazines as &$magazine) {
         if ($magazine['image_url']) {
             $magazine['image_url'] = $baseUrl . '/' . $magazine['image_url'];
