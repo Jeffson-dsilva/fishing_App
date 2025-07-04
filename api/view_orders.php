@@ -5,7 +5,13 @@ require_once(__DIR__ . '/../include/db_connect.php');
 try {
     $fisherId = $_GET['fisher_id'];
 
-    $query = "SELECT o.order_id, f.name AS fish_name, o.quantity, (o.quantity * f.price) AS total_price, u.name AS user_name
+    $query = "SELECT 
+                o.order_id, 
+                f.name AS fish_name, 
+                o.quantity, 
+                (o.quantity * f.price) AS total_price, 
+                u.name AS user_name, 
+                o.status 
               FROM orders o
               JOIN fish f ON o.fish_id = f.fish_id
               JOIN user u ON o.user_id = u.user_id

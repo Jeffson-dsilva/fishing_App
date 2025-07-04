@@ -16,7 +16,7 @@ try {
     ");
     $fish = $stmt->fetchAll(PDO::FETCH_ASSOC);
     // Append base URL to image_url for full path
-    $baseUrl = 'http://192.168.89.28/fishing1/fishing_App1/uploads'; // Use correct IP
+    $baseUrl = 'http://10.125.76.95/fishing1/fishing_App1/uploads'; // Use correct IP
     foreach ($fish as &$item) {
         if ($item['image_url']) {
             $item['image_url'] = $baseUrl . '/' . $item['image_url'];
